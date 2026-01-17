@@ -1,0 +1,760 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>SmartSpend Pro</title>
+<meta name="viewport" content="width=device-width, initial-scale=1">
+
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+<link rel="stylesheet" href="style.css">
+
+<style>
+  /* Global Styles */
+  * {
+    box-sizing: border-box;
+    margin: 0;
+    padding: 0;
+  }
+
+  body {
+    font-family: 'Inter', sans-serif;
+    background: #0f172a;
+    color: #f8fafc;
+    transition: background 0.3s, color 0.3s;
+    overflow-x: hidden;
+  }
+
+  body:not(.dark) {
+    background: #ffffff;
+    color: #0f172a;
+  }
+
+  .app {
+    display: flex;
+    flex-direction: column;
+    min-height: 100vh;
+  }
+
+  /* Top Bar */
+  .topbar {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 16px 20px;
+    background: linear-gradient(135deg, #1e293b, #0f172a);
+    box-shadow: 0 2px 10px rgba(0,0,0,0.2);
+  }
+
+  body:not(.dark) .topbar {
+    background: linear-gradient(135deg, #f8fafc, #e2e8f0);
+  }
+
+  .menu, .search {
+    font-size: 20px;
+    cursor: pointer;
+  }
+
+  .logo {
+    font-size: 20px;
+    font-weight: 700;
+  }
+
+  .logo span {
+    color: #22c55e;
+  }
+
+  /* Content */
+  .content {
+    flex: 1;
+    padding: 20px;
+    overflow-y: auto;
+  }
+
+  .page {
+    display: none;
+  }
+
+  .page.active {
+    display: block;
+  }
+
+  .monthbar {
+    font-size: 24px;
+    font-weight: 600;
+    margin-bottom: 20px;
+  }
+
+  /* Summary */
+  .summary {
+    display: flex;
+    justify-content: space-around;
+    margin-bottom: 20px;
+  }
+
+  .sum {
+    text-align: center;
+    padding: 20px;
+    border-radius: 12px;
+    background: rgba(255,255,255,0.1);
+    min-width: 120px;
+  }
+
+  body:not(.dark) .sum {
+    background: #f1f5f9;
+  }
+
+  .sum.exp {
+    border-left: 4px solid #f43f5e;
+  }
+
+  .sum.inc {
+    border-left: 4px solid #22c55e;
+  }
+
+  .sum span {
+    font-size: 24px;
+    font-weight: 700;
+  }
+
+  /* List */
+  .list {
+    margin-top: 20px;
+  }
+
+  /* Card */
+  .card {
+    background: rgba(255,255,255,0.05);
+    border-radius: 12px;
+    padding: 20px;
+    box-shadow: 0 4px 20px rgba(0,0,0,0.1);
+  }
+
+  body:not(.dark) .card {
+    background: #f8fafc;
+  }
+
+  /* FAB */
+  .fab {
+    position: fixed;
+    bottom: 100px;
+    right: 20px;
+    width: 60px;
+    height: 60px;
+    border-radius: 50%;
+    border: none;
+    background: linear-gradient(135deg, #f43f5e, #fb7185);
+    color: white;
+    font-size: 24px;
+    box-shadow: 0 10px 25px rgba(244,63,94,0.4);
+    cursor: pointer;
+    z-index: 1000;
+    transition: transform 0.2s;
+  }
+
+  .fab:hover {
+    transform: scale(1.1);
+  }
+
+  /* Bottom Nav */
+  .bottomnav {
+    display: flex;
+    justify-content: space-around;
+    padding: 12px 0;
+    background: linear-gradient(135deg, #1e293b, #0f172a);
+    box-shadow: 0 -2px 10px rgba(0,0,0,0.2);
+  }
+
+  body:not(.dark) .bottomnav {
+    background: linear-gradient(135deg, #f8fafc, #e2e8f0);
+  }
+
+  .bottomnav button {
+    background: none;
+    border: none;
+    color: #94a3b8;
+    font-size: 12px;
+    text-align: center;
+    cursor: pointer;
+    transition: color 0.3s;
+  }
+
+  .bottomnav button.active {
+    color: #22c55e;
+  }
+
+  /* Modal Backdrop */
+  .modal {
+    position: fixed;
+    inset: 0;
+    background: rgba(0,0,0,0.55);
+    backdrop-filter: blur(4px);
+    display: none;
+    align-items: flex-end;
+    justify-content: center;
+    z-index: 10000;
+  }
+
+  /* Bottom Sheet */
+  .sheet {
+    width: 100%;
+    max-width: 480px;
+    border-radius: 22px 22px 0 0;
+    padding: 18px;
+    background: linear-gradient(135deg, #0f172a, #020617);
+    color: #f8fafc;
+    box-shadow: 0 -20px 60px rgba(0,0,0,0.6);
+    animation: slideUp 0.25s ease;
+  }
+
+  body:not(.dark) .sheet {
+    background: linear-gradient(135deg, #ffffff, #f1f5f9);
+    color: #0f172a;
+  }
+
+  @keyframes slideUp {
+    from {
+      transform: translateY(100%);
+    }
+    to {
+      transform: translateY(0);
+    }
+  }
+
+  /* Sheet Header */
+  .sheetHeader {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    font-size: 18px;
+    margin-bottom: 14px;
+  }
+
+  .sheetHeader span {
+    cursor: pointer;
+    font-size: 20px;
+  }
+
+  /* Sheet Body */
+  .sheetBody {
+    display: flex;
+    flex-direction: column;
+  }
+
+  /* Inputs */
+  .sheet input,
+  .sheet select {
+    width: 100%;
+    padding: 14px;
+    margin-top: 10px;
+    border-radius: 12px;
+    border: none;
+    outline: none;
+    font-size: 15px;
+    background: rgba(255,255,255,0.08);
+    color: inherit;
+    transition: background 0.3s;
+  }
+
+  body:not(.dark) .sheet input,
+  body:not(.dark) .sheet select {
+    background: #f1f5f9;
+  }
+
+  /* Segmented Control */
+  .seg {
+    display: flex;
+    gap: 10px;
+    margin-bottom: 10px;
+  }
+
+  .seg button {
+    flex: 1;
+    padding: 12px;
+    border-radius: 12px;
+    border: none;
+    background: rgba(255,255,255,0.1);
+    color: inherit;
+    cursor: pointer;
+    transition: background 0.3s;
+  }
+
+  .seg button.active {
+    background: linear-gradient(135deg, #22c55e, #06b6d4);
+    color: white;
+  }
+
+  /* Save Button */
+  .saveBtn {
+    width: 100%;
+    margin-top: 16px;
+    padding: 16px;
+    border-radius: 14px;
+    border: none;
+    font-size: 16px;
+    font-weight: 600;
+    color: white;
+    background: linear-gradient(135deg, #f43f5e, #fb7185);
+    box-shadow: 0 10px 25px rgba(244,63,94,0.4);
+    cursor: pointer;
+    transition: transform 0.2s;
+  }
+
+  .saveBtn:hover {
+    transform: translateY(-2px);
+  }
+
+  /* File Input */
+  .sheet input[type="file"] {
+    margin-top: 10px;
+  }
+
+  /* Buttons Container */
+  .buttons {
+    display: flex;
+    gap: 10px;
+    margin-top: 14px;
+  }
+
+  .buttons button:last-child {
+    background: #475569;
+    box-shadow: none;
+  }
+
+  /* Drawer */
+  .drawer {
+    position: fixed;
+    top: 0;
+    left: -300px;
+    width: 300px;
+    height: 100%;
+    background: linear-gradient(135deg, #0f172a, #020617);
+    color: #f8fafc;
+    padding: 20px;
+    box-shadow: 2px 0 10px rgba(0,0,0,0.2);
+    transition: left 0.3s;
+    z-index: 10001;
+  }
+
+  body:not(.dark) .drawer {
+    background: linear-gradient(135deg, #ffffff, #f1f5f9);
+    color: #0f172a;
+  }
+
+  .drawer.open {
+    left: 0;
+  }
+
+  .drawerHeader {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 20px;
+  }
+
+  .drawerHeader span {
+    cursor: pointer;
+    font-size: 20px;
+  }
+
+  .drawerBody {
+    display: flex;
+    flex-direction: column;
+    gap: 20px;
+  }
+
+  .settingRow {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+  }
+
+  .switch {
+    position: relative;
+    display: inline-block;
+    width: 50px;
+    height: 24px;
+  }
+
+  .switch input {
+    opacity: 0;
+    width: 0;
+    height: 0;
+  }
+
+  .slider {
+    position: absolute;
+    cursor: pointer;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background-color: #ccc;
+    transition: 0.4s;
+    border-radius: 24px;
+  }
+
+  .slider:before {
+    position: absolute;
+    content: "";
+    height: 18px;
+    width: 18px;
+    left: 3px;
+    bottom: 3px;
+    background-color: white;
+    transition: 0.4s;
+    border-radius: 50%;
+  }
+
+  input:checked + .slider {
+    background-color: #22c55e;
+  }
+
+  input:checked + .slider:before {
+    transform: translateX(26px);
+  }
+
+  .dangerBtn {
+    background: #f43f5e;
+    color: white;
+    border: none;
+    padding: 8px 12px;
+    border-radius: 8px;
+    cursor: pointer;
+  }
+
+  /* Overlay */
+  .drawerOverlay {
+    position: fixed;
+    inset: 0;
+    background: rgba(0,0,0,0.5);
+    display: none;
+    z-index: 10000;
+  }
+
+  /* Icon Grid */
+  #iconGrid {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 10px;
+    margin-top: 10px;
+  }
+
+  #iconGrid button {
+    padding: 10px;
+    border: none;
+    background: rgba(255,255,255,0.1);
+    border-radius: 8px;
+    cursor: pointer;
+  }
+
+  body:not(.dark) #iconGrid button {
+    background: #f1f5f9;
+  }
+</style>
+</head>
+
+<body class="dark">
+
+<div class="app">
+
+  <!-- TOP BAR -->
+  <div class="topbar">
+    <div class="menu" onclick="toggleDrawer()">☰</div>
+    <div class="logo">SmartSpend <span>PRO</span></div>
+    <div class="search">🔍</div>
+  </div>
+
+  <!-- CONTENT -->
+  <div class="content">
+
+    <!-- RECORDS -->
+    <div id="page-records" class="page active">
+      <div class="monthbar" style="display:flex;align-items:center;gap:10px;flex-wrap:wrap">
+        <span>Records</span>
+        <select id="monthSelectHeader" style="padding:6px 10px;border-radius:8px;border:none;background:rgba(255,255,255,0.08);color:inherit"></select>
+      </div>
+
+      <div id="searchBar" data-open="0" style="display:none;margin:-10px 0 10px 0">
+        <input id="searchInput" placeholder="Search description, amount, category, or account" style="width:100%;padding:12px;border-radius:10px;border:none;background:rgba(255,255,255,0.08);color:inherit" />
+      </div>
+
+      <div class="summary">
+        <div class="sum exp">EXPENSE<br><span>₹ 0</span></div>
+        <div class="sum inc">INCOME<br><span>₹ 0</span></div>
+      </div>
+
+      <div class="list" id="recordsList"></div>
+    </div>
+
+    <!-- ANALYSIS -->
+    <div id="page-analysis" class="page">
+      <div class="monthbar">Analysis</div>
+      <div class="card">
+        <canvas id="pieChart"></canvas>
+      </div>
+      <div class="card" id="analysisBreakdown"></div>
+    </div>
+
+    <!-- AI -->
+    <div id="page-ai" class="page">
+      <div class="monthbar">🤖 Smart AI Insights</div>
+      <div id="aiBox"></div>
+    </div>
+
+    <!-- BUDGETS -->
+    <div id="page-budgets" class="page">
+      <div class="monthbar">Budgets</div>
+      <div class="card" style="margin-bottom:12px">
+        <div id="budgetsSummary" style="display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap">
+          <div><b>This month</b></div>
+          <div style="display:flex;gap:14px;align-items:center;flex-wrap:wrap">
+            <span>Total Budget: <b id="totalBudget">₹ 0</b></span>
+            <span>Spent: <b id="totalSpent">₹ 0</b></span>
+            <span>Remaining: <b id="totalRemaining">₹ 0</b></span>
+            <button class="iconBtn" onclick="copyBudgetsFromLastMonth()">⤴️ Copy Last Month</button>
+            <label style="display:flex;align-items:center;gap:6px">
+              <input type="checkbox" id="autoCarryToggle" onchange="toggleAutoCarryBudget(this.checked)">
+              Auto-carry to next month
+            </label>
+          </div>
+        </div>
+      </div>
+      <div class="list" id="budgetsList"></div>
+    </div>
+
+    <!-- ACCOUNTS -->
+    <div id="page-accounts" class="page">
+      <div class="monthbar">Accounts</div>
+      <div id="accountsList" class="list"></div>
+    </div>
+
+    <!-- CATEGORIES -->
+    <div id="page-categories" class="page">
+      <div class="monthbar" style="display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap">
+        <span>Categories</span>
+        <button class="iconBtn" onclick="openCustomCategoryModal()">➕ Add Category</button>
+      </div>
+      <div id="categoriesList" class="list"></div>
+    </div>
+
+  </div>
+
+  <!-- FLOATING ACTION BUTTON -->
+  <button class="fab" onclick="openAddModal()">＋</button>
+
+  <!-- BOTTOM NAV -->
+  <div class="bottomnav">
+    <button onclick="showPage('records')" class="active">📄<br>Records</button>
+    <button onclick="showPage('analysis')">📊<br>Analysis</button>
+    <button onclick="showPage('ai')">🤖<br>AI</button>
+    <button onclick="showPage('budgets')">📒<br>Budgets</button>
+    <button onclick="showPage('accounts')">💳<br>Accounts</button>
+    <button onclick="showPage('categories')">🏷️<br>Categories</button>
+  </div>
+
+</div>
+
+<script src="app.js"></script>
+
+<!-- ADD TRANSACTION MODAL -->
+<div class="modal" id="addModal">
+  <div class="sheet">
+    <div class="sheetHeader">
+      <b>Add Transaction</b>
+      <span onclick="closeAddModal()">✕</span>
+    </div>
+    <div class="sheetBody">
+      <!-- TYPE SELECT -->
+      <div class="seg">
+        <button id="typeExpense" class="active" onclick="setType('expense')">Expense</button>
+        <button id="typeIncome" onclick="setType('income')">Income</button>
+      </div>
+      <!-- AMOUNT -->
+      <input id="txAmount" type="number" placeholder="Amount" required>
+      <!-- ACCOUNT -->
+      <select id="txAccount" required>
+        <option value="">Select Account</option>
+      </select>
+      <!-- CATEGORY (ONLY FOR EXPENSE) -->
+      <select id="txCategory" required>
+        <option value="">Select Category</option>
+      </select>
+      <!-- INCOME SOURCE (ONLY FOR INCOME) -->
+      <input id="txSource" placeholder="Income source" style="display:none" required>
+      <!-- DESCRIPTION (ONLY FOR EXPENSE) -->
+      <input id="txDesc" placeholder="Description (optional)">
+      <!-- DATE -->
+      <input id="txDate" type="date" required>
+      <!-- IMAGE ATTACH -->
+      <div style="margin-top:10px">
+        📷 Attach Bill:
+        <input type="file" id="txImage" accept="image/*" capture="environment">
+      </div>
+      <!-- BUTTONS -->
+      <div class="buttons">
+        <button class="saveBtn" onclick="saveTx()">Save</button>
+        <button class="saveBtn" onclick="closeAddModal()">Cancel</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ICON PICKER MODAL -->
+<div class="modal" id="iconPicker">
+  <div class="sheet">
+    <div class="sheetHeader">
+      <b>Select Icon</b>
+      <span onclick="closeIconPicker()">✕</span>
+    </div>
+    <div class="sheetBody" id="iconGrid">
+      <!-- Icons will be populated by JS -->
+    </div>
+  </div>
+</div>
+
+<!-- CUSTOM CATEGORY MODAL -->
+<div class="modal" id="customCategoryModal">
+  <div class="sheet">
+    <div class="sheetHeader">
+      <b>Add Custom Category</b>
+      <span onclick="closeCustomCategoryModal()">✕</span>
+    </div>
+    <div class="sheetBody">
+      <input id="customCatName" placeholder="Category name" />
+      <input id="customCatColor" type="hidden" value="#64748b" />
+      <input id="customCatIcon" type="hidden" value="🎯" />
+      <div style="margin-top:10px;font-weight:600">Color</div>
+      <div id="colorGrid" style="display:flex;gap:10px;flex-wrap:wrap;margin-top:8px"></div>
+      <div style="margin-top:14px;font-weight:600">Icon</div>
+      <div id="customIconGrid" style="display:grid;grid-template-columns:repeat(6,1fr);gap:8px;margin-top:8px"></div>
+      <div class="buttons">
+        <button class="saveBtn" onclick="saveCustomCategory()">Save</button>
+        <button class="saveBtn" style="background:#475569;box-shadow:none" onclick="closeCustomCategoryModal()">Cancel</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ACCOUNT MODAL -->
+<div class="modal" id="accountModal">
+  <div class="sheet">
+    <div class="sheetHeader">
+      <b id="accountModalTitle">Account</b>
+      <span onclick="closeModal('accountModal')">✕</span>
+    </div>
+    <div class="sheetBody">
+      <input id="accountId" type="hidden" />
+      <input id="accountName" placeholder="Account name" />
+      <input id="accountBalance" type="number" placeholder="Initial balance (optional)" />
+      <div class="buttons">
+        <button class="saveBtn" onclick="saveAccountFromModal()">Save</button>
+        <button class="saveBtn" style="background:#475569;box-shadow:none" onclick="closeModal('accountModal')">Cancel</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ACCOUNT DELETE CONFIRM MODAL -->
+<div class="modal" id="accountDeleteModal">
+  <div class="sheet">
+    <div class="sheetHeader">
+      <b>Delete Account</b>
+      <span onclick="closeModal('accountDeleteModal')">✕</span>
+    </div>
+    <div class="sheetBody">
+      <div id="accountDeleteText" style="margin-bottom:12px"></div>
+      <div class="buttons">
+        <button class="saveBtn" style="background:#ef4444" onclick="performAccountDelete()">Delete</button>
+        <button class="saveBtn" style="background:#475569;box-shadow:none" onclick="closeModal('accountDeleteModal')">Cancel</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- CATEGORY HISTORY MODAL -->
+<div class="modal" id="categoryHistoryModal">
+  <div class="sheet">
+    <div class="sheetHeader">
+      <b id="categoryHistoryTitle">Category History</b>
+      <span onclick="closeModal('categoryHistoryModal')">✕</span>
+    </div>
+    <div class="sheetBody" id="categoryHistoryList"></div>
+  </div>
+</div>
+
+<!-- GENERIC CONFIRM MODAL -->
+<div class="modal" id="confirmModal">
+  <div class="sheet">
+    <div class="sheetHeader">
+      <b>Confirm</b>
+      <span onclick="closeModal('confirmModal')">✕</span>
+    </div>
+    <div class="sheetBody">
+      <div id="confirmText" style="margin-bottom:12px"></div>
+      <div class="buttons">
+        <button class="saveBtn" id="confirmYesBtn">Yes</button>
+        <button class="saveBtn" style="background:#475569;box-shadow:none" onclick="closeModal('confirmModal')">Cancel</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- TOAST -->
+<div id="toast" style="position:fixed;left:50%;bottom:110px;transform:translateX(-50%);background:rgba(15,23,42,0.95);color:#fff;padding:10px 14px;border-radius:12px;display:none;z-index:20000;box-shadow:0 8px 20px rgba(0,0,0,0.3)"></div>
+
+<!-- SIDE DRAWER -->
+<div class="drawer" id="drawer">
+  <div class="drawerHeader">
+    <b>⚙️ Settings</b>
+    <span onclick="toggleDrawer()">✕</span>
+  </div>
+  <div class="drawerBody">
+    <!-- Dark Mode -->
+    <div class="settingRow">
+      <span>🌙 Dark Mode</span>
+      <label class="switch">
+        <input type="checkbox" id="darkToggle" onchange="toggleTheme()" checked>
+        <span class="slider"></span>
+      </label>
+    </div>
+    <!-- Currency -->
+    <div class="settingRow">
+      <span>💱 Currency</span>
+      <select id="currencySelect" onchange="changeCurrency(this.value)">
+        <option value="₹">₹ INR</option>
+        <option value="$">$ USD</option>
+        <option value="€">€ EUR</option>
+        <option value="£">£ GBP</option>
+      </select>
+    </div>
+    <!-- Filter by Month -->
+    <div class="settingRow">
+      <span>🗓️ Filter Month</span>
+      <select id="monthSelectDrawer" onchange="updateFilterMonth(this.value)"></select>
+    </div>
+    <!-- Export / Import -->
+    <div class="settingRow" style="gap:10px">
+      <button class="dangerBtn" style="background:#0ea5e9" onclick="exportData()">Export Data</button>
+      <button class="dangerBtn" style="background:#22c55e" onclick="triggerImport()">Import Data</button>
+      <input id="importFile" type="file" accept="application/json" style="display:none" onchange="importData(event)" />
+    </div>
+    <!-- Clear Data -->
+    <div class="settingRow">
+      <span>🧹 Reset App</span>
+      <button class="dangerBtn" onclick="resetApp()">Clear All Data</button>
+    </div>
+    <!-- About -->
+    <div class="settingRow">
+      <span>ℹ️ About</span>
+      <div style="opacity:.7;font-size:13px">SmartSpend Pro v1.0</div>
+    </div>
+  </div>
+</div>
+
+<!-- OVERLAY -->
+<div class="drawerOverlay" id="drawerOverlay" onclick="toggleDrawer()"></div>
+
+</body>
+</html>
